@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Unit-5 Quiz System</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #ecf0f1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .header-info {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #timer {
+            color: red;
+            font-weight: bold;
+            float: right;
+            font-size: 18px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            background: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="reg-page">
+    <div class="header-info">
+        <h2>SRM Institute of Science and Technology</h2>
+        <h3>ECE Department</h3>
+        <h3>Nanoscale Electronic Devices</h3>
+    </div>
+
+    <h2>Unit-5 Quiz</h2>
+
+    <label>Name:</label>
+    <input type="text" id="name" style="width:100%; padding:8px;"><br><br>
+
+    <label>Reg No:</label>
+    <input type="text" id="reg" style="width:100%; padding:8px;"><br><br>
+
+    <button onclick="startQuiz()">Start Quiz</button>
+</div>
+
+<div class="container hidden" id="quiz-page">
+    <span id="timer"></span>
+    <h3 id="studentInfo"></h3>
+    <div id="questions"></div>
+</div>
+
+<div class="container hidden" id="result-page">
+    <h2>Quiz Completed</h2>
+    <div id="result"></div>
+</div>
+
+<script src="questions.js"></script>
+
+<script>
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3rPzjBhTu9jEGQeHqGL4oEXItefVKyqufI9DUPZnCGk30BKlEULocOm0iWV4PKRhznA/exec";
+
+let currentQuestion = 0;
+let selectedQuestions = [];
+let answers = [];
+let timer;
+let timeLeft = 20;
+
+function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5);
+}
+
+function startQuiz() {
+    let name = document.getElementById("name").value.trim();
+    let reg = document.getElementById("reg").value.trim();
+
+    if (name === "" || reg === "") {
+        alert("Enter Name and Register Number");
+        return;
+    }
+
+    document.getElementById("studentInfo").innerHTML =
+        "<b>Name:</b> " + name + " | <b>Reg No:</b> " + reg;
+
+    selectedQuestions = shuffle([...questions]);
+    currentQuestion = 0;
+    answers = [];
+
+    document.getElementById("reg-page").classList.add("hidden");
+    document.getElementById("quiz-page").classList.remove("hidden");
+
+    showQuestion();
+}
+
+function showQuestion() {
+    if (currentQuestion >= selectedQuestions.length) {
+        submitQuiz();
+        return;
+    }
+
+    let q = selectedQuestions[currentQuestion];
+
+    let html = `
+        <h3>Question ${currentQuestion + 1} / ${selectedQuestions.length}</h3>
+        <p><b>${q.q}</b></p>
+    `;
+
+    q.a.forEach((opt, index) => {
+        html += `<button onclick="selectAnswer(${index})">${opt}</button>`;
+    });
+
+    document.getElementById("questions").innerHTML = html;
+
+    timeLeft = 20;
+    startTimer();
+}
+
+function selectAnswer(index) {
+    answers[currentQuestion] = index;
+    clearInterval(timer);
+    currentQuestion++;
+    showQuestion();
+}
+
+function startTimer() {
+    clearInterval(timer);
+
+    timer = setInterval(() => {
+        document.getElementById("timer").innerText =
+            "Time Left: " + timeLeft + " sec";
+
+        timeLeft--;
+
+        if (timeLeft < 0) {
+            clearInterval(timer);
+            currentQuestion++;
+            showQuestion();
+        }
+    }, 1000);
+}
+
+function submitQuiz() {
+    clearInterval(timer);
+
+    let correct = 0;
+    let responseArray = [];
+
+    // Ensure all 20 questions are processed
+    selectedQuestions.forEach((q, i) => {
+        let studentAnswer = (answers[i] !== undefined) ? answers[i] : "Skipped";
+        responseArray.push(studentAnswer);
+        if (answers[i] === q.c) {
+            correct++;
+        }
+    });
+
+    let name = document.getElementById("name").value;
+    let reg = document.getElementById("reg").value;
+
+    // Send the data using the same format as your working Feedback form
+    fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify({
+            name: name,
+            reg: reg,       // Mapping this to the script's data.reg
+            answers: responseArray,
+            marks: correct
+        })
+    })
+    .then(res => res.json()) // Parsing the 'success' response
+    .then(res => {
+        console.log("Data saved:", res);
+    })
+    .catch(err => {
+        console.error("Submission error:", err);
+    });
+
+    // Display result to student
+    document.getElementById("quiz-page").classList.add("hidden");
+    document.getElementById("result-page").classList.remove("hidden");
+    document.getElementById("result").innerHTML = `
+        <h3>Quiz Completed</h3>
+        <p><b>Name:</b> ${name} | <b>Reg No:</b> ${reg}</p>
+        <p><b>Score:</b> ${correct} / ${selectedQuestions.length}</p>
+        <p>Your responses have been recorded.</p>
+    `;
+}
+</script>
+
+</body>
+</html>
