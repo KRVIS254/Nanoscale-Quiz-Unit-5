@@ -172,28 +172,31 @@ function submitQuiz() {
     clearInterval(timer);
 
     let totalMarks = 0;
-    let responseArray = []; // This will store 1, 0, or "skipped"
+    let responseArray = []; 
 
     selectedQuestions.forEach((q, i) => {
         let studentAnswerIndex = answers[i];
         
+        // 1. Check if the answer is missing (Skipped)
         if (studentAnswerIndex === undefined || studentAnswerIndex === null) {
-            // 1. If skipped: save "skipped"
-            responseArray.push("skipped");
-        } else if (studentAnswerIndex === q.c) {
-            // 2. If it matches: save 1
-            responseArray.push(1);
-            totalMarks++;
-        } else {
-            // 3. If it's wrong: save 0
-            responseArray.push(0);
+            responseArray.push("skipped"); // Records "skipped" in the column
+            // No marks added
+        } 
+        // 2. Check if the answer is correct
+        else if (studentAnswerIndex === q.c) {
+            responseArray.push(1); // Records 1 in the column
+            totalMarks++;          // Adds to total score
+        } 
+        // 3. The answer is wrong
+        else {
+            responseArray.push(0); // Records 0 in the column
+            // No marks added
         }
     });
 
     let name = document.getElementById("name").value;
     let reg = document.getElementById("reg").value;
 
-    // Send the data to your Google Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         mode: "no-cors", 
@@ -204,8 +207,8 @@ function submitQuiz() {
             marks: totalMarks
         })
     })
-    .then(() => console.log("Data submitted successfully"))
-    .catch(err => console.error("Submission error:", err));
+    .then(() => console.log("Data sent to sheet"))
+    .catch(err => console.error("Error:", err));
 
     // Show result UI
     document.getElementById("quiz-page").classList.add("hidden");
@@ -213,7 +216,8 @@ function submitQuiz() {
     document.getElementById("result").innerHTML = `
         <h3>Quiz Completed</h3>
         <p><b>Name:</b> ${name} | <b>Reg No:</b> ${reg}</p>
-        <p><b>Score:</b> ${totalMarks} / ${selectedQuestions.length}</p>
+        <p><b>Final Score:</b> ${totalMarks} / ${selectedQuestions.length}</p>
+        <p>Your results have been saved.</p>
     `;
 }
 </script>
