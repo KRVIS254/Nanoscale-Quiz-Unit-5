@@ -171,54 +171,47 @@ function submitQuiz() {
     clearInterval(timer);
 
     let totalMarks = 0;
-    let responseArray = []; // This will store 1, 0, or "skipped"
+    let questionTrackingArray = []; // This will store "Question Text: Mark"
 
-    // Process all questions
     selectedQuestions.forEach((q, i) => {
         let studentAnswerIndex = answers[i];
-        
-        // 1. If skipped: save the string "skipped"
-        if (studentAnswerIndex === undefined || studentAnswerIndex === null) {
-            responseArray.push("skipped");
-        } 
-        // 2. If it matches the correct index (q.c): save 1
-        else if (studentAnswerIndex === q.c) {
-            responseArray.push(1);
-            totalMarks++;
-        } 
-        // 3. If it is wrong: save 0
-        else {
-            responseArray.push(0);
+        let mark = 0;
+        let status = "skipped";
+
+        if (studentAnswerIndex !== undefined && studentAnswerIndex !== null) {
+            if (studentAnswerIndex === q.c) {
+                mark = 1;
+                totalMarks++;
+                status = "1";
+            } else {
+                mark = 0;
+                status = "0";
+            }
         }
+
+        // Save the Question Text and the result together so you know which is which
+        // Example: "What is PCM?: 1"
+        questionTrackingArray.push(q.q + " [" + status + "]");
     });
 
     let name = document.getElementById("name").value;
     let reg = document.getElementById("reg").value;
 
-    // Send the data as a clean JSON object
     fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         mode: "no-cors", 
         body: JSON.stringify({
             name: name,
             reg: reg,
-            answers: responseArray, // This now contains [1, 0, "skipped", etc.]
+            answers: questionTrackingArray, // Sends actual question text + mark
             marks: totalMarks
         })
-    })
-    .then(() => console.log("Data sent successfully"))
-    .catch(err => console.error("Error:", err));
+    });
 
-    // Show result UI
     document.getElementById("quiz-page").classList.add("hidden");
     document.getElementById("result-page").classList.remove("hidden");
-    document.getElementById("result").innerHTML = `
-        <h3>Quiz Completed</h3>
-        <p><b>Name:</b> ${name} | <b>Reg No:</b> ${reg}</p>
-        <p><b>Final Score:</b> ${totalMarks} / ${selectedQuestions.length}</p>
-    `;
+    document.getElementById("result").innerHTML = `<h3>Score: ${totalMarks} / 20</h3>`;
 }
-
 </script>
 
 </body>
