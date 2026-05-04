@@ -171,47 +171,49 @@ function startTimer() {
 function submitQuiz() {
     clearInterval(timer);
 
-    let correct = 0;
-    let responseArray = [];
+    let totalMarks = 0;
+    let responseArray = []; // This will store 1, 0, or "skipped"
 
-    // Ensure all 20 questions are processed
     selectedQuestions.forEach((q, i) => {
-        let studentAnswer = (answers[i] !== undefined) ? answers[i] : "Skipped";
-        responseArray.push(studentAnswer);
-        if (answers[i] === q.c) {
-            correct++;
+        let studentAnswerIndex = answers[i];
+        
+        if (studentAnswerIndex === undefined || studentAnswerIndex === null) {
+            // 1. If skipped: save "skipped"
+            responseArray.push("skipped");
+        } else if (studentAnswerIndex === q.c) {
+            // 2. If it matches: save 1
+            responseArray.push(1);
+            totalMarks++;
+        } else {
+            // 3. If it's wrong: save 0
+            responseArray.push(0);
         }
     });
 
     let name = document.getElementById("name").value;
     let reg = document.getElementById("reg").value;
 
-    // Send the data using the same format as your working Feedback form
+    // Send the data to your Google Apps Script
     fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
+        mode: "no-cors", 
         body: JSON.stringify({
             name: name,
-            reg: reg,       // Mapping this to the script's data.reg
-            answers: responseArray,
-            marks: correct
+            reg: reg,
+            answers: responseArray, 
+            marks: totalMarks
         })
     })
-    .then(res => res.json()) // Parsing the 'success' response
-    .then(res => {
-        console.log("Data saved:", res);
-    })
-    .catch(err => {
-        console.error("Submission error:", err);
-    });
+    .then(() => console.log("Data submitted successfully"))
+    .catch(err => console.error("Submission error:", err));
 
-    // Display result to student
+    // Show result UI
     document.getElementById("quiz-page").classList.add("hidden");
     document.getElementById("result-page").classList.remove("hidden");
     document.getElementById("result").innerHTML = `
         <h3>Quiz Completed</h3>
         <p><b>Name:</b> ${name} | <b>Reg No:</b> ${reg}</p>
-        <p><b>Score:</b> ${correct} / ${selectedQuestions.length}</p>
-        <p>Your responses have been recorded.</p>
+        <p><b>Score:</b> ${totalMarks} / ${selectedQuestions.length}</p>
     `;
 }
 </script>
